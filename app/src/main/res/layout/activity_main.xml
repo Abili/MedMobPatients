@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <ImageView
+        android:id="@+id/imageView2"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="65dp"
+        android:src="@drawable/profile_pic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/patientSignUp"
+        app:layout_constraintTop_toTopOf="parent">
+
+
+        <EditText
+            android:textAlignment="center"
+            android:id="@+id/phoneNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:hint="@string/phonehint"
+            android:inputType="phone"
+            android:padding="20dp"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toTopOf="@+id/patientSignUp"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <EditText
+            android:textAlignment="center"
+            android:id="@+id/verificationCode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginRight="20dp"
+            android:layout_weight="1"
+            android:hint="@string/verifiction_code"
+            android:inputType="number"
+            android:padding="20dp"
+            android:textSize="@dimen/text_size"
+            app:layout_constraintBottom_toTopOf="@+id/patientSignUp"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/buttonResend"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:textSize="@dimen/text_size"
+            android:textColor="@color/colorPrimaryDark"
+            android:layout_width="wrap_content"
+            android:text="Resend Code"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+
+    <Button
+        android:id="@+id/patientSignUp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:background="@drawable/round"
+        android:text="@string/sign_up"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/text_size"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.998" />
+
+    <Button
+        android:id="@+id/patientVerify"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:background="@color/colorPrimaryDark"
+        android:text="@string/verify"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/text_size"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.998" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+

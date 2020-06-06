@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">MedMobPatients</string>
+    <string name="verifiction_code">verifiction code</string>
+    <string name="phonehint">eg. +25677200200</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="verify">Verify</string>
+    <string name="emergency">Emergency</string>
+    <string name="title_activity_maps">Map</string>
+
+    <string name="default_info_title">Default Location</string>
+    <string name="default_info_snippet">No places found, because location permission is disabled.</string>
+    <string name="option_get_place">Get place</string>
+    <string name="pick_place">Choose a place</string>
+    <string name="channel_name">find_doctors_channel</string>
+    <string name="channel_description">doctor_found</string>
+
+    <string-array name="drugs">
+        <item>Panadol</item>
+        <item>Aspirine</item>
+        <item>Quinine</item>
+        <item>panadol Extra</item>
+    </string-array>
+</resources>
