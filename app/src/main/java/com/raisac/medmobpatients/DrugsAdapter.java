@@ -1,7 +1,6 @@
 package com.raisac.medmobpatients;
 
 import android.content.Context;
-import android.sax.TextElementListener;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,7 +10,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -34,7 +32,8 @@ public class DrugsAdapter extends RecyclerView.Adapter<DrugsAdapter.MyViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
-        holder.drugname.setText(mDrugs.get(position).getName());
+        Drugs drugs = mDrugs.get(position);
+        holder.bind(drugs);
 
     }
 
@@ -42,7 +41,8 @@ public class DrugsAdapter extends RecyclerView.Adapter<DrugsAdapter.MyViewHolder
     public int getItemCount() {
         return mDrugs.size();
     }
-    public class MyViewHolder extends RecyclerView.ViewHolder{
+
+    public class MyViewHolder extends RecyclerView.ViewHolder {
         @BindView(R.id.drugName)
         TextView drugname;
 
@@ -51,5 +51,10 @@ public class DrugsAdapter extends RecyclerView.Adapter<DrugsAdapter.MyViewHolder
             super(itemView);
             ButterKnife.bind(this, itemView);
         }
+
+        public void bind(Drugs drugs) {
+            drugname.setText(drugs.getName());
+        }
     }
+
 }

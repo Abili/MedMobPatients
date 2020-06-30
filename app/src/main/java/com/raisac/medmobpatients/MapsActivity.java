@@ -1,43 +1,32 @@
 package com.raisac.medmobpatients;
 
-import android.app.AlertDialog;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
+import android.Manifest;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.RadioGroup;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import com.bumptech.glide.Glide;
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
 import com.firebase.geofire.GeoQuery;
 import com.firebase.geofire.GeoQueryEventListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.GeofencingClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -46,662 +35,236 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PointOfInterest;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.places.api.Places;
-import com.google.android.libraries.places.api.model.Place;
-import com.google.android.libraries.places.api.model.PlaceLikelihood;
-import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest;
-import com.google.android.libraries.places.api.net.FindCurrentPlaceResponse;
-import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import butterknife.BindView;
-import butterknife.ButterKnife;
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
-        GoogleMap.OnPoiClickListener {
-
-    private static final String CHANNEL_ID = "Incoming notification";
-    private static final int NOTIFICATION_ID = 1;
     private GoogleMap mMap;
-    private Marker pickUpMarker;
-    int radius = 1;
-    String doctorFoundId;
-    Boolean doctorFound = false;
+    Location mLastLocation;
+    LocationRequest mLocationRequest;
+    private String mPatientsRequests = "patientsRequests";
 
-    private LocationRequest mLocationRequest;
+    private FusedLocationProviderClient mFusedLocationClient;
 
-    @BindView(R.id.card_doc)
-    CardView mCardDoc;
-    @BindView(R.id.patients_phone)
-    TextView docs_phoneNumber;
-    @BindView(R.id.doc_name)
-    TextView mDocsName;
-    @BindView(R.id.call_doc)
-    Button callPatient;
-    @BindView(R.id.closeInfo)
-    Button close_info;
-    @BindView(R.id.doc_pic)
-    ImageView mDocs_image;
+    private Button mLogout, mRequest, mSettings, mHistory;
 
-    private String destination;
+    private LatLng pickupLocation;
 
-    private GeofencingClient geofencingClient;
+    private Boolean requestBol = false;
 
-    private static final String TAG = MapsActivity.class.getSimpleName();
-    private CameraPosition mCameraPosition;
+    private Marker pickupMarker;
 
-    // The entry point to the Places API.
-    private PlacesClient mPlacesClient;
+    private SupportMapFragment mapFragment;
 
-    // The entry point to the Fused Location Provider.
-    private FusedLocationProviderClient mFusedLocationProviderClient;
+    private String destination, requestService;
 
-    // A default location (Sydney, Australia) and default zoom to use when location permission is
-    // not granted.
-    private final LatLng mDefaultLocation = new LatLng(-33.8523341, 151.2106085);
-    private static final int DEFAULT_ZOOM = 15;
-    private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
-    private boolean mLocationPermissionGranted;
+    private LatLng destinationLatLng;
 
-    // The geographical location where the device is currently located. That is, the last-known
-    // location retrieved by the Fused Location Provider.
-    private Location mLastKnownLocation;
+    private CardView mDoctorInfo;
 
-    // Keys for storing activity state.
-    private static final String KEY_CAMERA_POSITION = "camera_position";
-    private static final String KEY_LOCATION = "location";
+    private ImageView mDoctorProfileImage;
 
-    // Used for selecting the current place.
-    private static final int M_MAX_ENTRIES = 5;
-    private String[] mLikelyPlaceNames;
-    private String[] mLikelyPlaceAddresses;
-    private List[] mLikelyPlaceAttributions;
-    private LatLng[] mLikelyPlaceLatLngs;
+    private TextView mDoctorName, mDoctorPhone, mDriverCar;
 
-    FirebaseAuth mAuth;
-    FirebaseUser mUser;
-    private String mUid;
-    private DatabaseReference mLocation_ref;
-    private GeoFire mGeoFire;
+    private RadioGroup mRadioGroup;
 
-    String users = "users";
-    String location = "location";
-    String patients = "patientsRequests";
-    private String mPlace;
-    private LatLng mMyposition;
-    String mDoctors = "doctorsAvailable";
-    String doctors = "doctors";
-    private DatabaseReference mDriver_available;
-    String doctorsWorking = "doctorsWorking";
-    Button mOrderDoc;
-    private NotificationCompat.Builder mBuilder;
-    private GeoQuery mGeoQuery;
-    private Boolean requestBool = false;
-    private Marker doctorMarker;
-    private DatabaseReference mDoctorLocationRef;
-    private ValueEventListener mDoctorLocationEventListener;
-    private DatabaseReference mPatientDatabase;
-
+    private RatingBar mRatingBar;
+    private DatabaseReference mPatientsRequestsRef;
+    private String mPatientRideId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Retrieve location and camera position from saved instance state.
-        if (savedInstanceState != null) {
-            mLastKnownLocation = savedInstanceState.getParcelable(KEY_LOCATION);
-            mCameraPosition = savedInstanceState.getParcelable(KEY_CAMERA_POSITION);
-        }
         setContentView(R.layout.activity_maps);
-        ButterKnife.bind(this);
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-
-        init(user);
-        mOrderDoc = findViewById(R.id.orderdocBtn);
-
-        geofencingClient = LocationServices.getGeofencingClient(this);
-
-        // Construct a PlacesClient
-        Places.initialize(getApplicationContext(), getString(R.string.google_maps_key));
-        mPlacesClient = Places.createClient(this);
-
-        // Construct a FusedLocationProviderClient.
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-
-
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        destinationLatLng = new LatLng(0.0, 0.0);
 
-        mAuth = FirebaseAuth.getInstance();
-        mUser = mAuth.getCurrentUser();
-        if (mUid != null) {
-            mUid = mUser.getUid();
-        }
+        mDoctorInfo = findViewById(R.id.card_doc);
 
-        mLocation_ref = FirebaseDatabase.getInstance().getReference().child(patients);
-        mGeoFire = new GeoFire(mLocation_ref);
-        close_info.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mCardDoc.setVisibility(View.GONE);
-            }
-        });
+        mDoctorProfileImage = (ImageView) findViewById(R.id.doc_pic);
+        mPatientsRequestsRef = FirebaseDatabase.getInstance().getReference().child(mPatientsRequests);
 
-        callPatient.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //callDoctor();
-            }
-        });
-    }
+        mDoctorName = findViewById(R.id.doc_name);
+        mDoctorPhone = findViewById(R.id.docs_phone);
+        //mDriverCar = (TextView) findViewById(R.id.driverCar);
 
-    public void orderDoc(View view) {
-        if (requestBool) {
-            cancelDocotor();
+        //mRatingBar = (RatingBar) findViewById(R.id.ratingBar);
 
-        } else {
-            requestBool = true;
+//        mRadioGroup = (RadioGroup) findViewById(R.id.radioGroup);
+//        mRadioGroup.check(R.id.UberX);
 
-            //mMap.moveCamera(CameraUpdateFactory.newLatLng(mMyposition));
-            mGeoFire = new GeoFire(mLocation_ref);
-            if (mLastKnownLocation != null) {
-                mGeoFire.setLocation(mUid, new GeoLocation(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude()));
-                mMyposition = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
-                pickUpMarker = mMap.addMarker(new MarkerOptions().position(mMyposition).title("Me"));
+        //mLogout = (Button) findViewById(R.id.logout);
+        mRequest = findViewById(R.id.orderdocBtn);
+        //mSettings = findViewById(R.id.settings);
+        //mHistory =  findViewById(R.id.history);
 
-                getClosestDoctor();
-            }
-        }
-
-    }
-
-
-    private void cancelDocotor() {
-
-
-//        OrderDoctor dialog = new OrderDoctor();
-//        dialog.show(getSupportFragmentManager(), TAG);
-        if (requestBool) {
-            requestBool = false;
-            mGeoQuery.removeAllListeners();
-            mDoctorLocationRef.removeEventListener(mDoctorLocationEventListener);
-            if (doctorFoundId != null) {
-                mPatientDatabase.child("patientReqId").setValue(true);
-                doctorFoundId = null;
-            }
-            doctorFound = false;
-            radius = 1;
-            mGeoFire.removeLocation(mUid);
-            if (pickUpMarker != null) {
-                pickUpMarker.remove();
-                doctorMarker.remove();
-            }
-
-            mOrderDoc.setText("call doctor");
-            mCardDoc.setVisibility(View.GONE);
-            docs_phoneNumber.setText("");
-            mDocsName.setText("");
-            mDocs_image.setImageResource(R.drawable.profile_pic);
-
-
-        } else {
-            requestBool = true;
-
-            //mMap.moveCamera(CameraUpdateFactory.newLatLng(mMyposition));
-            mGeoFire = new GeoFire(mLocation_ref);
-            if (mLastKnownLocation != null) {
-                mGeoFire.setLocation(mUid, new GeoLocation(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude()));
-                mMyposition = new LatLng(mLastKnownLocation.getLatitude(), mLastKnownLocation.getLongitude());
-                pickUpMarker = mMap.addMarker(new MarkerOptions().position(mMyposition).title("Me"));
-
-                getClosestDoctor();
-            }
-        }
-
-    }
-
-    private void init(FirebaseUser firebaseUser) {
-        Intent getProfle = getIntent();
-        String photoUrl = getProfle.getStringExtra("user_image");
-
-        ImageLoader.getInstance().init(ImageLoaderConfiguration.createDefault(MapsActivity.this));
-        //getUserAccountData();
-
-
-    }
-
-
-    /**
-     * Saves the state of the map when the activity is paused.
-     */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        if (mMap != null) {
-            outState.putParcelable(KEY_CAMERA_POSITION, mMap.getCameraPosition());
-            outState.putParcelable(KEY_LOCATION, mLastKnownLocation);
-            super.onSaveInstanceState(outState);
-        }
-    }
-
-
-    /**
-     * Sets up the options menu.
-     *
-     * @param menu The options menu.
-     * @return Boolean.
-     */
-
-
-    /**
-     * Manipulates the map when it's available.
-     * This callback is triggered when the map is ready to be used.
-     */
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        googleMap.setOnPoiClickListener(this);
-
-        mLocationRequest = LocationRequest.create();
-        mLocationRequest.setInterval(10000);
-        mLocationRequest.setFastestInterval(5000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            //set location to firebase
-//            if (mLastKnownLocation!=null) {
-//                mGeoFire.setLocation(mUid, new GeoLocation(mLastKnownLocation.getLatitude(),
-//                        mLastKnownLocation.getLongitude()));
+//        mLogout.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                FirebaseAuth.getInstance().signOut();
+//                Intent intent = new Intent(MapsActivity.this, MainActivity.class);
+//                startActivity(intent);
+//                finish();
+//                return;
 //            }
+//        });
 
-        } else {
-            getLocationPermission();
-        }
-
-        mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
-        mMap.setMyLocationEnabled(true);
-
-        // Use a custom info window adapter to handle multiple lines of text in the
-        // info window contents.
-        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
-
+        mRequest.setOnClickListener(new View.OnClickListener() {
             @Override
-            // Return null here, so that getInfoContents() is called next.
-            public View getInfoWindow(Marker arg0) {
-                return null;
-            }
+            public void onClick(View v) {
 
-            @Override
-            public View getInfoContents(Marker marker) {
-                // Inflate the layouts for the info window, title and snippet.
-                View infoWindow = getLayoutInflater().inflate(R.layout.custom_info_contents,
-                        (FrameLayout) findViewById(R.id.map), false);
+                if (requestBol) {
+                    endRide();
 
-                TextView title = infoWindow.findViewById(R.id.title);
-                title.setText(marker.getTitle());
 
-                TextView snippet = infoWindow.findViewById(R.id.snippet);
-                snippet.setText(marker.getSnippet());
+                } else {
+//                    int selectId = mRadioGroup.getCheckedRadioButtonId();
 
-                return infoWindow;
+                    //final RadioButton radioButton =  findViewById(selectId);
+
+//                    if (radioButton.getText() == null){
+//                        return;
+//                    }
+//
+//                    requestService = radioButton.getText().toString();
+
+                    requestBol = true;
+
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+                    GeoFire geoFire = new GeoFire(mPatientsRequestsRef);
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                            new LatLng(mLastLocation.getLatitude(),
+                                    mLastLocation.getLongitude()), 11));
+
+                    geoFire.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+
+                    pickupLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                    pickupMarker = mMap.addMarker(new MarkerOptions().position(pickupLocation).title("Pickup Here"));
+                    mRequest.setText("Getting your Doctor....");
+
+                    getClosestDoctor();
+                }
             }
         });
+//        mSettings.setOnClickListener(v -> {
+//            Intent intent = new Intent(MapsActivity.this, Profile.class);
+//            startActivity(intent);
+//            return;
+//        });
+
+//        mHistory.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Intent intent = new Intent(MapActivity.this, HistoryActivity.class);
+//                intent.putExtra("customerOrDriver", "Customers");
+//                startActivity(intent);
+//                return;
+//            }
+//        });
+
+//        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+//                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+//
+//        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+//            @Override
+//            public void onPlaceSelected(Place place) {
+//                // TODO: Get info about the selected place.
+//                destination = place.getName().toString();
+//                destinationLatLng = place.getLatLng();
+//            }
+//            @Override
+//            public void onError(Status status) {
+//                // TODO: Handle the error.
+//            }
+//        });
 
 
-        try {
-            // Customise the styling of the base map using a JSON object defined
-            // in a raw resource file.
-            boolean success = googleMap.setMapStyle(
-                    MapStyleOptions.loadRawResourceStyle(
-                            this, R.raw.styled_map));
-
-            if (!success) {
-                Log.e(TAG, "Style parsing failed.");
-            }
-        } catch (Resources.NotFoundException e) {
-            Log.e(TAG, "Can't find style. Error: ", e);
-        }
-
-        // Add some markers to the map, and add a data object to each marker.
-
-
-        // Prompt the user for permission.
-        getLocationPermission();
-
-        // Turn on the My Location layer and the related control on the map.
-        updateLocationUI();
-
-        // Get the current location of the device and set the position of the map.
-        getDeviceLocation();
     }
 
-    LocationCallback mLocationCallback = new LocationCallback() {
-        @Override
-        public void onLocationResult(LocationResult locationResult) {
-            for (Location location : locationResult.getLocations()) {
-                if (getApplicationContext() != null) {
-                    mLastKnownLocation = location;
-                    LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-//                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-//                    mMap.animateCamera(CameraUpdateFactory.zoomTo(DEFAULT_ZOOM));
+    private int radius = 1;
+    private Boolean doctorFound = false;
+    private String doctorFoundId;
 
-
-                }
-            }
-        }
-    };
-
-    /**
-     * Gets the current location of the device, and positions the map's camera.
-     */
-    private void getDeviceLocation() {
-
-        /*
-         * Get the best and most recent location of the device, which may be null in rare
-         * cases when a location is not available.
-         */
-        try {
-            if (mLocationPermissionGranted) {
-                Task<Location> locationResult = mFusedLocationProviderClient.getLastLocation();
-                locationResult.addOnCompleteListener(this, new OnCompleteListener<Location>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Location> task) {
-                        if (task.isSuccessful()) {
-                            // Set the map's camera position to the current location of the device.
-                            mLastKnownLocation = task.getResult();
-                            if (mLastKnownLocation != null) {
-                                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                        new LatLng(mLastKnownLocation.getLatitude(),
-                                                mLastKnownLocation.getLongitude()), DEFAULT_ZOOM));
-
-                            }
-                        } else {
-                            Log.d(TAG, "Current location is null. Using defaults.");
-                            Log.e(TAG, "Exception: %s", task.getException());
-                            mMap.moveCamera(CameraUpdateFactory
-                                    .newLatLngZoom(mDefaultLocation, DEFAULT_ZOOM));
-                            mMap.getUiSettings().setMyLocationButtonEnabled(false);
-                        }
-                    }
-                });
-            }
-        } catch (SecurityException e) {
-            Log.e("Exception: %s", e.getMessage());
-        }
-    }
-
-
-    /**
-     * Prompts the user for permission to use the device location.
-     */
-    private void getLocationPermission() {
-        /*
-         * Request location permission, so that we can get the location of the
-         * device. The result of the permission request is handled by a callback,
-         * onRequestPermissionsResult.
-         */
-        if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-            mLocationPermissionGranted = true;
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                    PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
-        }
-    }
-
-    /**
-     * Handles the result of the request for location permissions.
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        mLocationPermissionGranted = false;
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    mLocationPermissionGranted = true;
-                    mFusedLocationProviderClient.requestLocationUpdates(mLocationRequest, mLocationCallback,
-                            Looper.myLooper());
-                    mMap.setMyLocationEnabled(true);
-                }
-            }
-        }
-        updateLocationUI();
-    }
-
-    /**
-     * Prompts the user to select the current place from a list of likely places, and shows the
-     * current place on the map - provided the user has granted location permission.
-     */
-    private void showCurrentPlace() {
-        if (mMap == null) {
-            return;
-        }
-
-        if (mLocationPermissionGranted) {
-            // Use fields to define the data types to return.
-            List<Place.Field> placeFields = Arrays.asList(Place.Field.NAME, Place.Field.ADDRESS,
-                    Place.Field.LAT_LNG);
-
-            // Use the builder to create a FindCurrentPlaceRequest.
-            FindCurrentPlaceRequest request =
-                    FindCurrentPlaceRequest.newInstance(placeFields);
-
-            // Get the likely places - that is, the businesses and other points of interest that
-            // are the best match for the device's current location.
-            @SuppressWarnings("MissingPermission") final Task<FindCurrentPlaceResponse> placeResult =
-                    mPlacesClient.findCurrentPlace(request);
-            placeResult.addOnCompleteListener(new OnCompleteListener<FindCurrentPlaceResponse>() {
-                @Override
-                public void onComplete(@NonNull Task<FindCurrentPlaceResponse> task) {
-                    if (task.isSuccessful() && task.getResult() != null) {
-                        FindCurrentPlaceResponse likelyPlaces = task.getResult();
-
-                        // Set the count, handling cases where less than 5 entries are returned.
-                        int count;
-                        if (likelyPlaces.getPlaceLikelihoods().size() < M_MAX_ENTRIES) {
-                            count = likelyPlaces.getPlaceLikelihoods().size();
-                        } else {
-                            count = M_MAX_ENTRIES;
-                        }
-
-                        int i = 0;
-                        mLikelyPlaceNames = new String[count];
-                        mLikelyPlaceAddresses = new String[count];
-                        mLikelyPlaceAttributions = new List[count];
-                        mLikelyPlaceLatLngs = new LatLng[count];
-
-                        for (PlaceLikelihood placeLikelihood : likelyPlaces.getPlaceLikelihoods()) {
-                            // Build a list of likely places to show the user.
-                            mLikelyPlaceNames[i] = placeLikelihood.getPlace().getName();
-                            mLikelyPlaceAddresses[i] = placeLikelihood.getPlace().getAddress();
-                            mLikelyPlaceAttributions[i] = placeLikelihood.getPlace()
-                                    .getAttributions();
-                            mLikelyPlaceLatLngs[i] = placeLikelihood.getPlace().getLatLng();
-
-                            i++;
-                            if (i > (count - 1)) {
-                                break;
-                            }
-                        }
-
-                        // Show a dialog offering the user the list of likely places, and add a
-                        // marker at the selected place.
-                        MapsActivity.this.openPlacesDialog();
-                    } else {
-                        Log.e(TAG, "Exception: %s", task.getException());
-                    }
-                }
-            });
-        } else {
-            // The user has not granted permission.
-            Log.i(TAG, "The user did not grant location permission.");
-
-            // Add a default marker, because the user hasn't selected a place.
-            mMap.addMarker(new MarkerOptions()
-                    .title(getString(R.string.default_info_title))
-                    .position(mDefaultLocation)
-                    .snippet(getString(R.string.default_info_snippet)));
-
-            // Prompt the user for permission.
-            getLocationPermission();
-        }
-    }
-
-    /**
-     * Displays a form allowing the user to select a place from a list of likely places.
-     */
-    private void openPlacesDialog() {
-        // Ask the user to choose the place where they are now.
-        DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // The "which" argument contains the position of the selected item.
-                LatLng markerLatLng = mLikelyPlaceLatLngs[which];
-                String markerSnippet = mLikelyPlaceAddresses[which];
-                if (mLikelyPlaceAttributions[which] != null) {
-                    markerSnippet = markerSnippet + "\n" + mLikelyPlaceAttributions[which];
-                }
-
-                // Add a marker for the selected place, with an info window
-                // showing information about that place.
-                mMap.addMarker(new MarkerOptions()
-                        .title(mLikelyPlaceNames[which])
-                        .position(markerLatLng)
-                        .snippet(markerSnippet));
-
-                // Position the map's camera at the location of the marker.
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLng,
-                        DEFAULT_ZOOM));
-            }
-        };
-
-        // Display the dialog.
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.pick_place)
-                .setItems(mLikelyPlaceNames, listener)
-                .show();
-    }
-
-    /**
-     * Updates the map's UI settings based on whether the user has granted location permission.
-     */
-    private void updateLocationUI() {
-        if (mMap == null) {
-            return;
-        }
-        try {
-            if (mLocationPermissionGranted) {
-                mMap.setMyLocationEnabled(true);
-                mMap.getUiSettings().setMyLocationButtonEnabled(true);
-            } else {
-                mMap.setMyLocationEnabled(false);
-                mMap.getUiSettings().setMyLocationButtonEnabled(false);
-                mLastKnownLocation = null;
-                getLocationPermission();
-            }
-        } catch (SecurityException e) {
-            Log.e("Exception: %s", e.getMessage());
-        }
-    }
-
+    GeoQuery geoQuery;
 
     private void getClosestDoctor() {
-        mOrderDoc.setText("Getting Doctor...");
-        mDriver_available = FirebaseDatabase.getInstance().getReference().child(mDoctors);
-        GeoFire geoFire = new GeoFire(mDriver_available);
-        mGeoQuery = geoFire.queryAtLocation(new GeoLocation(mLastKnownLocation.getLatitude(),
-                mLastKnownLocation.getLongitude()), radius);
-        mGeoQuery.removeAllListeners();
+        DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("doctorsAvailable");
 
-        mGeoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+        GeoFire geoFire = new GeoFire(driverLocation);
+        geoQuery = geoFire.queryAtLocation(new GeoLocation(pickupLocation.latitude, pickupLocation.longitude), radius);
+        geoQuery.removeAllListeners();
 
-
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
-                if (!doctorFound && requestBool) {
-                    doctorFound = true;
-                    doctorFoundId = key;
-                    Toast.makeText(MapsActivity.this, "Linked to a doctor: " + mDocsName, Toast.LENGTH_SHORT).show();
-
-                    mPatientDatabase = FirebaseDatabase.getInstance().getReference()
-                            .child(users).child(doctors).child(key);
-                    mPatientDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+                if (!doctorFound && requestBol) {
+                    DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("users").child("doctors").child(key);
+                    mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        public void onDataChange(DataSnapshot dataSnapshot) {
                             if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0) {
-                                Map<String, Object> docMap = (Map<String, Object>) dataSnapshot.getValue();
+                                Map<String, Object> driverMap = (Map<String, Object>) dataSnapshot.getValue();
                                 if (doctorFound) {
                                     return;
                                 }
 
-                                DatabaseReference mDoctorRef = FirebaseDatabase.getInstance().getReference()
-                                        .child(users).child(doctors).child(doctorFoundId).child(patients);
-                                String patientReqId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                                HashMap<String, Object> custHashMap = new HashMap<>();
-                                custHashMap.put("patientReqId", patientReqId);
-                                mDoctorRef.updateChildren(custHashMap);
+                                // if(driverMap.get("service").equals(requestService)){
+                                doctorFound = true;
+                                doctorFoundId = dataSnapshot.getKey();
 
-                                //show driver in customer map
-                                getDoctorLocation();
-                                getDoctorInfo();
+                                DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("users").child("doctors")
+                                        .child(doctorFoundId).child(mPatientsRequests);
+                                mPatientRideId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                                HashMap map = new HashMap();
+                                map.put("patientRideId", mPatientRideId);
+                                map.put("destination", destination);
+                                map.put("destinationLat", destinationLatLng.latitude);
+                                map.put("destinationLng", destinationLatLng.longitude);
+                                driverRef.updateChildren(map);
+
+                                getDriverLocation();
+                                getDriverInfo();
+                                getHasRideEnded();
+                                mRequest.setText("Looking for Doctor Location....");
 
                             }
                         }
 
                         @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                        public void onCancelled(DatabaseError databaseError) {
                         }
                     });
-
                 }
             }
 
-
             @Override
             public void onKeyExited(String key) {
+
             }
 
             @Override
             public void onKeyMoved(String key, GeoLocation location) {
+
             }
 
             @Override
@@ -710,7 +273,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     radius++;
                     getClosestDoctor();
                 }
-
             }
 
             @Override
@@ -720,173 +282,329 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         });
     }
 
-    private void getDoctorInfo() {
-        mCardDoc.setVisibility(View.VISIBLE);
+    /*-------------------------------------------- Map specific functions -----
+    |  Function(s) getDriverLocation
+    |
+    |  Purpose:  Get's most updated driver location and it's always checking for movements.
+    |
+    |  Note:
+    |	   Even tho we used geofire to push the location of the driver we can use a normal
+    |      Listener to get it's location with no problem.
+    |
+    |      0 -> Latitude
+    |      1 -> Longitudde
+    |
+    *-------------------------------------------------------------------*/
+    private Marker mDoctorMarker;
+    private DatabaseReference doctorLocationRef;
+    private ValueEventListener doctorLocationRefListener;
 
-        mUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference()
-                .child("users").child(doctors).child(doctorFoundId);
-        reference.addListenerForSingleValueEvent(new ValueEventListener() {
+    private void getDriverLocation() {
+        doctorLocationRef = FirebaseDatabase.getInstance().getReference().child("doctorsWorking").child(doctorFoundId).child("l");
+        doctorLocationRefListener = doctorLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0) {
-                    if (dataSnapshot.child("fName") != null) {
-                        mDocsName.setText(dataSnapshot.child("fName").getValue().toString());
-                    }
-                    if (dataSnapshot.child("profile_pics") != null) {
-                        //Glide.with(getApplicationContext()).load(map.get("profile_pics").toString()).into(mDocs_image);
-                        ImageLoader.getInstance().displayImage(dataSnapshot.child("profile_pics").getValue().toString(), mDocs_image);
-                    }
-                    if (dataSnapshot.child("phone") != null) {
-                        docs_phoneNumber.setText(dataSnapshot.child("phone").getValue().toString());
-                    }
-
-                } else {
-                    mDocsName.setText("No Name");
-                    docs_phoneNumber.setText("No Number");
-                    // Toast.makeText(Profile.this, "Data not Found", Toast.LENGTH_LONG).show();
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-    }
-
-
-    private void getDoctorLocation() {
-        mDoctorLocationRef = FirebaseDatabase.getInstance().getReference()
-                .child(doctorsWorking).child(doctorFoundId).child("l");
-
-        mDoctorLocationEventListener = mDoctorLocationRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists() && requestBool) {
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists() && requestBol) {
                     List<Object> map = (List<Object>) dataSnapshot.getValue();
                     double locationLat = 0;
-                    double locationLong = 0;
-
-
+                    double locationLng = 0;
                     if (map.get(0) != null) {
                         locationLat = Double.parseDouble(map.get(0).toString());
-
                     }
                     if (map.get(1) != null) {
-                        locationLong = Double.parseDouble(map.get(1).toString());
+                        locationLng = Double.parseDouble(map.get(1).toString());
                     }
-                    LatLng doctorLatLong = new LatLng(locationLat, locationLong);
-                    if (doctorMarker != null) {
-                        doctorMarker.remove();
+                    LatLng driverLatLng = new LatLng(locationLat, locationLng);
+                    if (mDoctorMarker != null) {
+                        mDoctorMarker.remove();
                     }
-
                     Location loc1 = new Location("");
-                    loc1.setLatitude(mMyposition.latitude);
-                    loc1.setLongitude(mMyposition.longitude);
+                    loc1.setLatitude(pickupLocation.latitude);
+                    loc1.setLongitude(pickupLocation.longitude);
 
                     Location loc2 = new Location("");
-                    loc2.setLatitude(doctorLatLong.latitude);
-                    loc2.setLongitude(doctorLatLong.longitude);
+                    loc2.setLatitude(driverLatLng.latitude);
+                    loc2.setLongitude(driverLatLng.longitude);
 
-                    float distance = (int) loc1.distanceTo(loc2);
+                    float distance = loc1.distanceTo(loc2);
 
-                    //setText on button
-                    String doctFound = "You've been inked to a doctor: " + String.valueOf(distance) + " Meters Away";
-                    mOrderDoc.setText(doctFound);
-                    createNotification(doctFound);
-
-                    if (distance < 20) {
-                        String doctHere = "Doctor Has Reached";
-                        mOrderDoc.setText(doctHere);
-                        createNotification(doctHere);
+                    if (distance < 100) {
+                        mRequest.setText("doctor's Here");
+                    } else {
+                        mRequest.setText("doctor Found: " + distance);
                     }
 
 
-                    doctorMarker = mMap.addMarker(new MarkerOptions().position(doctorLatLong).title("Doctor")
-                            .icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_doctor_foreground)));
+                    mDoctorMarker = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("doctor"));
                 }
+
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
+            public void onCancelled(DatabaseError databaseError) {
             }
         });
 
     }
 
+    /*-------------------------------------------- getDriverInfo -----
+    |  Function(s) getDriverInfo
+    |
+    |  Purpose:  Get all the user information that we can get from the user's database.
+    |
+    |  Note: --
+    |
+    *-------------------------------------------------------------------*/
+    private void getDriverInfo() {
+        mDoctorInfo.setVisibility(View.VISIBLE);
+        DatabaseReference mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("users").child("doctors").child(doctorFoundId);
+        mCustomerDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0) {
+                    if (dataSnapshot.child("fName") != null) {
+                        mDoctorName.setText(dataSnapshot.child("fName").getValue().toString());
+                    }
+                    if (dataSnapshot.child("phone") != null) {
+                        mDoctorPhone.setText(dataSnapshot.child("phone").getValue().toString());
+                    }
 
-    private void createNotification(String info) {
+                    if (dataSnapshot.child("profile_pics").getValue() != null) {
+                        Glide.with(getApplication()).load(dataSnapshot.child("profile_pics").getValue().toString()).into(mDoctorProfileImage);
+                    }
 
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = getString(R.string.channel_name);
-            String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
+//                    int ratingSum = 0;
+//                    float ratingsTotal = 0;
+//                    float ratingsAvg = 0;
+//                    for (DataSnapshot child : dataSnapshot.child("rating").getChildren()) {
+//                        ratingSum = ratingSum + Integer.valueOf(child.getValue().toString());
+//                        ratingsTotal++;
+//                    }
+//                    if (ratingsTotal != 0) {
+//                        ratingsAvg = ratingSum / ratingsTotal;
+//                        mRatingBar.setRating(ratingsAvg);
+//                    }
+                }
+            }
 
-            Intent notifyIntent = new Intent(this, MapsActivity.class);
-// Set the Activity to start in a new, empty task
-            notifyIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-// Create the PendingIntent
-            PendingIntent notifyPendingIntent = PendingIntent.getActivity(
-                    this, 0, notifyIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            Bitmap icon = BitmapFactory.decodeResource(getApplicationContext().getResources(),
-                    R.drawable.medmob_icon);
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
 
-            mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID);
-            mBuilder.setContentText(info);
-            mBuilder.setContentTitle("MedMob");
-            mBuilder.setContentIntent(notifyPendingIntent);
-            mBuilder.setSmallIcon(R.drawable.medmob_icon);
-            mBuilder.setPriority(NotificationCompat.PRIORITY_HIGH);
-            mBuilder.setContentIntent(notifyPendingIntent);
-            mBuilder.setAutoCancel(true);
-            mBuilder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
-            mBuilder.setLargeIcon(icon);
+    private DatabaseReference driveHasEndedRef;
+    private ValueEventListener driveHasEndedRefListener;
 
-            NotificationManagerCompat managerCompat = NotificationManagerCompat.from(this);
-            managerCompat.notify(NOTIFICATION_ID, mBuilder.build());
+    private void getHasRideEnded() {
+        driveHasEndedRef = FirebaseDatabase.getInstance().getReference().child("users").child("doctors")
+                .child(doctorFoundId).child(mPatientsRequests).child("patientRideId");
+        driveHasEndedRefListener = driveHasEndedRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+
+                } else {
+                    endRide();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    private void endRide() {
+        requestBol = false;
+        geoQuery.removeAllListeners();
+        if (doctorLocationRef != null && driveHasEndedRef != null) {
+            doctorLocationRef.removeEventListener(doctorLocationRefListener);
+            driveHasEndedRef.removeEventListener(driveHasEndedRefListener);
+        }
+        if (doctorFoundId != null) {
+            DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("users").child("doctors")
+                    .child(doctorFoundId).child(mPatientsRequests);
+            driverRef.removeValue();
+            doctorFoundId = null;
+
+        }
+        doctorFound = false;
+        radius = 1;
+        String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        GeoFire geoFire = new GeoFire(mPatientsRequestsRef);
+        geoFire.removeLocation(userId);
+
+        if (pickupMarker != null) {
+            pickupMarker.remove();
+        }
+        if (mDoctorMarker != null) {
+            mDoctorMarker.remove();
+        }
+        mRequest.setText("call Uber");
+
+        mDoctorInfo.setVisibility(View.GONE);
+        mDoctorName.setText("");
+        mDoctorPhone.setText("");
+        //mDriverCar.setText("Destination: --");
+        mDoctorProfileImage.setImageResource(R.drawable.profile_pic);
+    }
+
+    /*-------------------------------------------- Map specific functions -----
+    |  Function(s) onMapReady, buildGoogleApiClient, onLocationChanged, onConnected
+    |
+    |  Purpose:  Find and update user's location.
+    |
+    |  Note:
+    |	   The update interval is set to 1000Ms and the accuracy is set to PRIORITY_HIGH_ACCURACY,
+    |      If you're having trouble with battery draining too fast then change these to lower values
+    |
+    |
+    *-------------------------------------------------------------------*/
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+            } else {
+                checkLocationPermission();
+            }
+        }
+
+        mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
+        mMap.setMyLocationEnabled(true);
+    }
+
+    LocationCallback mLocationCallback = new LocationCallback() {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            for (Location location : locationResult.getLocations()) {
+                if (getApplicationContext() != null) {
+                    mLastLocation = location;
+
+                    LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                    mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+                    if (!getDriversAroundStarted)
+                        getDriversAround();
+                }
+            }
+        }
+    };
+
+    /*-------------------------------------------- onRequestPermissionsResult -----
+    |  Function onRequestPermissionsResult
+    |
+    |  Purpose:  Get permissions for our app if they didn't previously exist.
+    |
+    |  Note:
+    |	requestCode: the nubmer assigned to the request that we've made. Each
+    |                request has it's own unique request code.
+    |
+    *-------------------------------------------------------------------*/
+    private void checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+                new android.app.AlertDialog.Builder(this)
+                        .setTitle("give permission")
+                        .setMessage("give permission message")
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                ActivityCompat.requestPermissions(MapsActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+                            }
+                        })
+                        .create()
+                        .show();
+            } else {
+                ActivityCompat.requestPermissions(MapsActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            }
         }
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-    }
-
-
-    @Override
-    public void onPoiClick(PointOfInterest poi) {
-        Toast.makeText(getApplicationContext(), "Clicked: " +
-                        poi.name + "\nPlace ID:" + poi.placeId +
-                        "\nLatitude:" + poi.latLng.latitude +
-                        " Longitude:" + poi.latLng.longitude,
-                Toast.LENGTH_SHORT).show();
-        mPlace = poi.name;
-
-    }
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.current_place_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.option_get_place) {
-            showCurrentPlace();
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case 1: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
+                        mMap.setMyLocationEnabled(true);
+                    }
+                } else {
+                    Toast.makeText(getApplicationContext(), "Please provide the permission", Toast.LENGTH_LONG).show();
+                }
+                break;
+            }
         }
-        return true;
     }
 
+
+    boolean getDriversAroundStarted = false;
+    List<Marker> markers = new ArrayList<Marker>();
+
+    private void getDriversAround() {
+        getDriversAroundStarted = true;
+        DatabaseReference doctorsAvailableLocation = FirebaseDatabase.getInstance().getReference().child("doctorsAvailable");
+
+        GeoFire geoFire = new GeoFire(doctorsAvailableLocation);
+        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(mLastLocation.getLongitude(), mLastLocation.getLatitude()), 999999999);
+
+        geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+
+                for (Marker markerIt : markers) {
+                    if (markerIt.getTag().equals(key))
+                        return;
+                }
+
+                LatLng driverLocation = new LatLng(location.latitude, location.longitude);
+
+                Marker mDriverMarker = mMap.addMarker(new MarkerOptions().position(driverLocation).title(key));
+                mDriverMarker.setTag(key);
+
+                markers.add(mDriverMarker);
+
+
+            }
+
+            @Override
+            public void onKeyExited(String key) {
+                for (Marker markerIt : markers) {
+                    if (markerIt.getTag().equals(key)) {
+                        markerIt.remove();
+                    }
+                }
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+                for (Marker markerIt : markers) {
+                    if (markerIt.getTag().equals(key)) {
+                        markerIt.setPosition(new LatLng(location.latitude, location.longitude));
+                    }
+                }
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+            }
+
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        });
+    }
 }
-
