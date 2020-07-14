@@ -12,7 +12,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.raisac.medmobpatients.Auths.Profile;
+import com.raisac.medmobpatients.MapsActivities.MapsActivity;
 
 import butterknife.ButterKnife;
 

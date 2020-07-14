@@ -1,23 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<layout>
+    <data>
+        <variable
+            name="drugs"
+            type="com.raisac.medmobpatients.Models.Drugs" />
+    </data>
+
+
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:padding="5dp"
-    android:orientation="horizontal">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/drugName"
-        android:layout_marginLeft="10dp"
-        android:textColor="@color/colorPrimary"
-        android:textSize="@dimen/text_size"
-        android:layout_weight="1"
-        android:layout_width="0dp"
+    <androidx.cardview.widget.CardView
+        android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:text="tables name" />
-    <CheckBox
-        android:layout_width="wrap_content"
-        android:id="@+id/drugCheckBox"
-        android:layout_height="wrap_content"/>
+        android:layout_marginEnd="311dp"
+        android:layout_marginBottom="583dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
 
-</LinearLayout>
+            <ImageView
+                android:id="@+id/tabsImage"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_marginEnd="311dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/drugs_price"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="3500"
+                android:textColor="@color/colorPrimary"
+                android:textSize="@dimen/text_size"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/drugName" />
+
+            <TextView
+                android:id="@+id/drugName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@{}"
+                android:textColor="@color/colorPrimary"
+                android:textSize="@dimen/text_size"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tabsImage" />
+
+            <CheckBox
+                android:id="@+id/drugCheckBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="@+id/tabsImage"
+                app:layout_constraintTop_toTopOf="@+id/tabsImage" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

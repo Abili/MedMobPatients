@@ -5,6 +5,8 @@ android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
 
+
+
     android {
         compileOptions {
             sourceCompatibility JavaVersion.VERSION_1_8
@@ -14,7 +16,7 @@ android {
 
     defaultConfig {
         applicationId "com.raisac.medmobpatients"
-        minSdkVersion 19
+        minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -27,6 +29,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+    dataBinding {
+        enabled = true
     }
 
 }
@@ -69,6 +74,14 @@ dependencies {
 
     // FirebaseUI for Firebase Realtime Database
     implementation 'com.firebaseui:firebase-ui-database:6.2.1'
+
+    def lifecycle_version = "2.2.0"
+    def arch_version = "2.1.0"
+    // ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+    // LiveData
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
 
     implementation 'androidx.core:core:1.0.0'
 }

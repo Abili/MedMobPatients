@@ -18,7 +18,7 @@
         android:roundIcon="@drawable/group_4"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Pharmacy"></activity>
+        <activity android:name=".SplashScreen"></activity>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -36,11 +36,11 @@
             android:label="@string/title_activity_maps" />
         <activity android:name="com.theartofdev.edmodo.cropper.CropImageActivity" />
         <activity android:name=".Home" />
-        <activity android:name=".MapsActivity" />
+        <activity android:name=".MapsActivities.MapsActivity" />
         <activity android:name=".LookForDoctor" />
-        <activity android:name=".UserProfile" />
-        <activity android:name=".Profile" />
-        <activity android:name=".SplashScreen">
+        <activity android:name=".Auths.UserProfile" />
+        <activity android:name=".Auths.Profile" />
+        <activity android:name=".Pharmacy">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

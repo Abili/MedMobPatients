@@ -3,7 +3,6 @@ package com.raisac.medmobpatients;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.ColorMatrix;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -29,6 +28,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.raisac.medmobpatients.Auths.UserProfile;
 
 import java.util.HashMap;
 import java.util.Map;
